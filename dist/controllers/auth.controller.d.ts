@@ -1,0 +1,7 @@
+import { Request, Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../middleware/auth';
+export declare function login(req: Request, res: Response, next: NextFunction): Promise<void>;
+export declare function refresh(req: Request, res: Response, next: NextFunction): Promise<void>;
+export declare function logout(req: Request, res: Response, next: NextFunction): Promise<void>;
+export declare function getMe(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void>;
+//# sourceMappingURL=auth.controller.d.ts.map
