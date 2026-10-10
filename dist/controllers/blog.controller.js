@@ -12,11 +12,19 @@ exports.updateBlog = updateBlog;
 exports.deleteBlog = deleteBlog;
 const Blog_1 = __importDefault(require("../models/Blog"));
 const response_1 = require("../utils/response");
+// Query params arrive via Express' extended query parser and can be objects
+// (e.g. ?search[$ne]=x) — only plain strings are accepted as filter values.
+function queryString(value) {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
 // PUBLIC: Get all published blogs
 async function getPublicBlogs(req, res, next) {
     try {
         const { page, limit, skip } = (0, response_1.getPaginationParams)(req.query);
-        const { category, tag, featured, search } = req.query;
+        const category = queryString(req.query.category);
+        const tag = queryString(req.query.tag);
+        const search = queryString(req.query.search);
+        const featured = req.query.featured;
         const filter = { status: 'published' };
         if (category)
             filter.category = category;
@@ -25,10 +33,11 @@ async function getPublicBlogs(req, res, next) {
         if (featured === 'true')
             filter.featured = true;
         if (search) {
+            const pattern = (0, response_1.escapeRegExp)(search);
             filter.$or = [
-                { title: { $regex: search, $options: 'i' } },
-                { excerpt: { $regex: search, $options: 'i' } },
-                { tags: { $in: [new RegExp(search, 'i')] } },
+                { title: { $regex: pattern, $options: 'i' } },
+                { excerpt: { $regex: pattern, $options: 'i' } },
+                { tags: { $in: [new RegExp(pattern, 'i')] } },
             ];
         }
         const [blogs, total] = await Promise.all([
@@ -65,16 +74,19 @@ async function getPublicBlogBySlug(req, res, next) {
 async function getAllBlogs(req, res, next) {
     try {
         const { page, limit, skip } = (0, response_1.getPaginationParams)(req.query);
-        const { status, featured, search } = req.query;
+        const status = queryString(req.query.status);
+        const search = queryString(req.query.search);
+        const featured = req.query.featured;
         const filter = {};
         if (status)
             filter.status = status;
         if (featured !== undefined)
             filter.featured = featured === 'true';
         if (search) {
+            const pattern = (0, response_1.escapeRegExp)(search);
             filter.$or = [
-                { title: { $regex: search, $options: 'i' } },
-                { excerpt: { $regex: search, $options: 'i' } },
+                { title: { $regex: pattern, $options: 'i' } },
+                { excerpt: { $regex: pattern, $options: 'i' } },
             ];
         }
         const [blogs, total] = await Promise.all([

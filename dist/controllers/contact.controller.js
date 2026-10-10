@@ -15,7 +15,16 @@ const email_1 = require("../utils/email");
 async function submitContact(req, res, next) {
     try {
         const { name, email, subject, message, phone, projectType } = req.body;
-        if (!name || !email || !subject || !message) {
+        // All core fields must be non-empty strings (blocks object/array payloads
+        // that would otherwise crash .trim()/.toLowerCase() and cause a 500).
+        if (typeof name !== 'string' ||
+            typeof email !== 'string' ||
+            typeof subject !== 'string' ||
+            typeof message !== 'string' ||
+            !name ||
+            !email ||
+            !subject ||
+            !message) {
             (0, response_1.sendError)(res, 'Name, email, subject and message are required.', 400);
             return;
         }
@@ -25,21 +34,25 @@ async function submitContact(req, res, next) {
             (0, response_1.sendError)(res, 'Invalid email address.', 400);
             return;
         }
+        const phoneStr = typeof phone === 'string' && phone.trim() ? phone.trim() : undefined;
+        const projectTypeStr = typeof projectType === 'string' && projectType.trim() ? projectType.trim() : undefined;
+        // CRLF must never reach an email header (header-injection guard).
+        const subjectForEmail = subject.replace(/[\r\n]+/g, ' ').trim();
         // Save to DB
         const msg = await Message_1.default.create({
             name: name.trim(),
             email: email.toLowerCase().trim(),
             subject: subject.trim(),
             message: message.trim(),
-            phone: phone?.trim(),
-            projectType: projectType?.trim(),
+            phone: phoneStr,
+            projectType: projectTypeStr,
             ipAddress: req.ip,
         });
         // Send email notification (non-blocking)
         (0, email_1.sendEmail)({
             to: process.env.CONTACT_EMAIL_TO || 'wilsonrodrigues.dev20@gmail.com',
-            subject: `New Portfolio Inquiry: ${subject}`,
-            html: (0, email_1.contactNotificationHtml)({ name, email, subject, message, phone, projectType }),
+            subject: `New Portfolio Inquiry: ${subjectForEmail}`,
+            html: (0, email_1.contactNotificationHtml)({ name, email, subject, message, phone: phoneStr, projectType: projectTypeStr }),
             text: `New inquiry from ${name} (${email})\n\nSubject: ${subject}\n\nMessage: ${message}`,
         }).catch((err) => console.error('Email send failed:', err));
         (0, response_1.sendSuccess)(res, { id: msg._id }, "Your message has been sent! I'll get back to you soon.", 201);

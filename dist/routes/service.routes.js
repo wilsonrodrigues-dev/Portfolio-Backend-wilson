@@ -5,8 +5,8 @@ const service_controller_1 = require("../controllers/service.controller");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 // Public: GET /api/services?public=true
-router.get('/', service_controller_1.getServices);
-router.get('/:id', service_controller_1.getServiceById);
+router.get('/', auth_1.optionalAuth, service_controller_1.getServices);
+router.get('/:id', auth_1.optionalAuth, service_controller_1.getServiceById);
 // Admin protected routes
 router.use(auth_1.protect);
 router.post('/', service_controller_1.createService);

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.protect = protect;
 exports.requireRole = requireRole;
+exports.optionalAuth = optionalAuth;
 const jwt_1 = require("../utils/jwt");
 const response_1 = require("../utils/response");
 function protect(req, res, next) {
@@ -42,4 +43,19 @@ function requireRole(...roles) {
         }
         next();
     };
+}
+// Attaches req.user when a valid Bearer token is present, otherwise continues
+// as anonymous. Used by public list/detail routes so drafts stay hidden from
+// anonymous callers while authenticated admins still see everything.
+function optionalAuth(req, _res, next) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            req.user = (0, jwt_1.verifyAccessToken)(authHeader.split(' ')[1]);
+        }
+        catch {
+            // Invalid/expired token → treat as anonymous; the route may be public.
+        }
+    }
+    next();
 }

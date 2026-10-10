@@ -16,20 +16,35 @@ const app = (0, express_1.default)();
 app.use((0, helmet_1.default)({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
-// CORS configuration
+// Trust the first proxy hop (Render puts the app behind a load-balancer).
+// Only enable when running behind a known trusted proxy.
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
+// CORS configuration: explicit allowlist (env-configurable + local dev/preview).
 const allowedOrigins = [
-    process.env.CLIENT_URL || 'http://localhost:5173',
+    process.env.CLIENT_URL,
+    process.env.FRONTEND_URL,
+    // Vercel preview deployments follow *.vercel.app pattern — add your specific URL
+    // in CLIENT_URL env var.
+    'http://localhost:5173',
+    'http://localhost:5174', // Vite fallback port when 5173 is busy
+    'http://localhost:4173',
     'http://localhost:3000',
     'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://127.0.0.1:4173',
     'http://127.0.0.1:3000',
-];
+].filter((o) => Boolean(o));
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
+        // No Origin header (curl, server-to-server) → not browser-enforced, allow.
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         }
         else {
-            callback(null, true); // Allow during dev/preview
+            // No CORS headers are emitted → the browser blocks the response.
+            callback(null, false);
         }
     },
     credentials: true,

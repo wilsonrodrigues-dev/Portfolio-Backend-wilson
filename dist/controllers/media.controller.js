@@ -17,9 +17,8 @@ async function uploadImage(req, res, next) {
             (0, response_1.sendError)(res, 'No file uploaded.', 400);
             return;
         }
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
         const relativePath = `uploads/images/${req.file.filename}`;
-        const url = `${baseUrl}/${relativePath}`;
+        const url = `/${relativePath}`;
         const media = await Media_1.default.create({
             filename: req.file.filename,
             originalname: req.file.originalname,
@@ -43,10 +42,9 @@ async function uploadMultipleImages(req, res, next) {
             (0, response_1.sendError)(res, 'No files uploaded.', 400);
             return;
         }
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
         const mediaItems = await Promise.all(files.map((file) => {
             const relativePath = `uploads/images/${file.filename}`;
-            const url = `${baseUrl}/${relativePath}`;
+            const url = `/${relativePath}`;
             return Media_1.default.create({
                 filename: file.filename,
                 originalname: file.originalname,
@@ -86,10 +84,17 @@ async function deleteMedia(req, res, next) {
             (0, response_1.sendError)(res, 'Media not found.', 404);
             return;
         }
-        // Delete local file
-        const filePath = path_1.default.join(process.cwd(), media.path);
-        if (fs_1.default.existsSync(filePath)) {
-            fs_1.default.unlinkSync(filePath);
+        // Delete local file — but only if it resolves inside the uploads directory
+        // (guards against a tampered `path` value escaping the storage root).
+        const uploadsRoot = path_1.default.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads');
+        const filePath = path_1.default.resolve(process.cwd(), media.path);
+        if (filePath.startsWith(uploadsRoot + path_1.default.sep)) {
+            if (fs_1.default.existsSync(filePath)) {
+                fs_1.default.unlinkSync(filePath);
+            }
+        }
+        else {
+            console.warn(`⚠️ Refusing to delete file outside uploads dir: ${media.path}`);
         }
         await Media_1.default.findByIdAndDelete(req.params.id);
         (0, response_1.sendSuccess)(res, null, 'Media deleted successfully');

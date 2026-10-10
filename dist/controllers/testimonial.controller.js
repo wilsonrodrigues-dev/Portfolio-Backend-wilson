@@ -13,7 +13,8 @@ const response_1 = require("../utils/response");
 async function getTestimonials(req, res, next) {
     try {
         const filter = {};
-        if (req.query.public === 'true')
+        // Anonymous callers only ever see published testimonials (drafts are admin-only).
+        if (req.query.public === 'true' || !req.user)
             filter.published = true;
         const testimonials = await Testimonial_1.default.find(filter).sort({ order: 1 }).select('-__v');
         (0, response_1.sendSuccess)(res, testimonials);
@@ -34,7 +35,7 @@ async function createTestimonial(req, res, next) {
 async function getTestimonialById(req, res, next) {
     try {
         const t = await Testimonial_1.default.findById(req.params.id);
-        if (!t) {
+        if (!t || (!req.user && !t.published)) {
             (0, response_1.sendError)(res, 'Testimonial not found.', 404);
             return;
         }

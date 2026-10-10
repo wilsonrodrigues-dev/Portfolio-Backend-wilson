@@ -13,7 +13,8 @@ const response_1 = require("../utils/response");
 async function getServices(req, res, next) {
     try {
         const filter = {};
-        if (req.query.public === 'true')
+        // Anonymous callers only ever see visible services (drafts are admin-only).
+        if (req.query.public === 'true' || !req.user)
             filter.visible = true;
         const services = await Service_1.default.find(filter).sort({ order: 1 }).select('-__v');
         (0, response_1.sendSuccess)(res, services);
@@ -34,7 +35,7 @@ async function createService(req, res, next) {
 async function getServiceById(req, res, next) {
     try {
         const service = await Service_1.default.findById(req.params.id);
-        if (!service) {
+        if (!service || (!req.user && !service.visible)) {
             (0, response_1.sendError)(res, 'Service not found.', 404);
             return;
         }

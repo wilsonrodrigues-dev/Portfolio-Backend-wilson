@@ -15,8 +15,17 @@ const loginLimiter = (0, express_rate_limit_1.default)({
     standardHeaders: true,
     legacyHeaders: false,
 });
+// Generous limit: normal usage is ~1 refresh per 15 min per tab (single-flight).
+// Only protects the endpoint from unauthenticated hammering.
+const refreshLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 60,
+    message: { success: false, message: 'Too many refresh attempts. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 router.post('/login', loginLimiter, auth_controller_1.login);
-router.post('/refresh', auth_controller_1.refresh);
+router.post('/refresh', refreshLimiter, auth_controller_1.refresh);
 router.post('/logout', auth_controller_1.logout);
 router.get('/me', auth_1.protect, auth_controller_1.getMe);
 exports.default = router;

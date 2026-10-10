@@ -5,4 +5,5 @@ export interface AuthenticatedRequest extends Request {
 }
 export declare function protect(req: AuthenticatedRequest, res: Response, next: NextFunction): void;
 export declare function requireRole(...roles: string[]): (req: AuthenticatedRequest, res: Response, next: NextFunction) => void;
+export declare function optionalAuth(req: AuthenticatedRequest, _res: Response, next: NextFunction): void;
 //# sourceMappingURL=auth.d.ts.map

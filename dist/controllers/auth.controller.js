@@ -13,7 +13,12 @@ const response_1 = require("../utils/response");
 async function login(req, res, next) {
     try {
         const { email, password } = req.body;
-        if (!email || !password) {
+        // Reject non-string payloads (?email[$gt]=... style operator injection and
+        // accidental 500s from .toLowerCase() on objects/arrays).
+        if (typeof email !== 'string' ||
+            typeof password !== 'string' ||
+            !email ||
+            !password) {
             (0, response_1.sendError)(res, 'Email and password are required.', 400);
             return;
         }
@@ -64,7 +69,9 @@ async function login(req, res, next) {
 }
 async function refresh(req, res, next) {
     try {
-        const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+        // Cookie only: the refresh token must never be accepted in the request
+        // body (single credential channel; frontend never sends it).
+        const refreshToken = req.cookies?.refreshToken;
         if (!refreshToken) {
             (0, response_1.sendError)(res, 'Refresh token not provided.', 401);
             return;

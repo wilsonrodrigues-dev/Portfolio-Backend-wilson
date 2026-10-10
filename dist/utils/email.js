@@ -29,7 +29,23 @@ async function sendEmail(options) {
         ...options,
     });
 }
+// Escapes user-supplied values before they are interpolated into the HTML
+// notification (prevents HTML injection into the email body).
+function escapeHtml(value) {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 function contactNotificationHtml(data) {
+    const name = escapeHtml(data.name);
+    const email = escapeHtml(data.email);
+    const subject = escapeHtml(data.subject);
+    const message = escapeHtml(data.message).replace(/\n/g, '<br>');
+    const phone = data.phone ? escapeHtml(data.phone) : '';
+    const projectType = data.projectType ? escapeHtml(data.projectType) : '';
     return `
     <!DOCTYPE html>
     <html>
@@ -53,12 +69,12 @@ function contactNotificationHtml(data) {
           <h1>New Portfolio Inquiry</h1>
           <p>Someone reached out through your portfolio contact form.</p>
         </div>
-        <div class="field"><label>Name</label><p>${data.name}</p></div>
-        <div class="field"><label>Email</label><p>${data.email}</p></div>
-        ${data.phone ? `<div class="field"><label>Phone</label><p>${data.phone}</p></div>` : ''}
-        ${data.projectType ? `<div class="field"><label>Project Type</label><p>${data.projectType}</p></div>` : ''}
-        <div class="field"><label>Subject</label><p>${data.subject}</p></div>
-        <div class="field"><label>Message</label><p>${data.message.replace(/\n/g, '<br>')}</p></div>
+        <div class="field"><label>Name</label><p>${name}</p></div>
+        <div class="field"><label>Email</label><p>${email}</p></div>
+        ${phone ? `<div class="field"><label>Phone</label><p>${phone}</p></div>` : ''}
+        ${projectType ? `<div class="field"><label>Project Type</label><p>${projectType}</p></div>` : ''}
+        <div class="field"><label>Subject</label><p>${subject}</p></div>
+        <div class="field"><label>Message</label><p>${message}</p></div>
         <div class="footer">Wilson Rodrigues Portfolio CMS — Automated notification</div>
       </div>
     </body>

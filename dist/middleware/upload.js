@@ -9,6 +9,7 @@ const path_1 = __importDefault(require("path"));
 const uuid_1 = require("uuid");
 const fs_1 = __importDefault(require("fs"));
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '5242880'); // 5MB default
 // Ensure upload directory exists
 const uploadDir = path_1.default.join(process.cwd(), process.env.UPLOAD_DIR || 'uploads', 'images');
@@ -26,11 +27,18 @@ const storage = multer_1.default.diskStorage({
     },
 });
 const fileFilter = (_req, file, cb) => {
-    if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+    // Validate BOTH the client-declared MIME type and the filename extension.
+    // The stored file keeps its extension and is served statically, so an
+    // arbitrary extension (.html/.js/...) with an allowed MIME header would be a
+    // stored-XSS vector on the API origin.
+    const ext = path_1.default.extname(file.originalname).toLowerCase();
+    if (ALLOWED_IMAGE_TYPES.includes(file.mimetype) && ALLOWED_EXTENSIONS.includes(ext)) {
         cb(null, true);
     }
     else {
-        cb(new Error(`Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}`));
+        const error = new Error(`Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}`);
+        error.statusCode = 400;
+        cb(error);
     }
 };
 exports.uploadImage = (0, multer_1.default)({

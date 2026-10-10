@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendSuccess = sendSuccess;
 exports.sendError = sendError;
 exports.generateSlug = generateSlug;
+exports.escapeRegExp = escapeRegExp;
 exports.getPaginationParams = getPaginationParams;
 function sendSuccess(res, data, message = 'Success', statusCode = 200, meta) {
     const response = { success: true, data, message };
@@ -23,6 +24,11 @@ function generateSlug(text) {
         .replace(/[^\w\s-]/g, '')
         .replace(/[\s_-]+/g, '-')
         .replace(/^-+|-+$/g, '');
+}
+// Escapes regex metacharacters so user-supplied search strings can be used
+// safely in $regex (prevents ReDoS / invalid-regex 500s from untrusted input).
+function escapeRegExp(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 function getPaginationParams(query) {
     const page = Math.max(1, parseInt(query.page) || 1);

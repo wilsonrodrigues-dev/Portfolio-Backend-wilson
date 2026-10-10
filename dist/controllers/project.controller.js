@@ -12,14 +12,19 @@ exports.updateProject = updateProject;
 exports.deleteProject = deleteProject;
 const Project_1 = __importDefault(require("../models/Project"));
 const response_1 = require("../utils/response");
+// Only plain strings are accepted as query filter values (Express' extended
+// query parser can produce objects/arrays like ?category[$ne]=x).
+function queryString(value) {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
 // PUBLIC: Get all published projects
 async function getPublicProjects(req, res, next) {
     try {
-        const { category, featured } = req.query;
+        const category = queryString(req.query.category);
         const filter = { published: true };
         if (category)
             filter.category = category;
-        if (featured === 'true')
+        if (req.query.featured === 'true')
             filter.featured = true;
         const projects = await Project_1.default.find(filter)
             .sort({ order: 1, createdAt: -1 })
@@ -48,7 +53,9 @@ async function getPublicProjectBySlug(req, res, next) {
 async function getAllProjects(req, res, next) {
     try {
         const { page, limit, skip } = (0, response_1.getPaginationParams)(req.query);
-        const { search, published, featured, category } = req.query;
+        const search = queryString(req.query.search);
+        const category = queryString(req.query.category);
+        const { published, featured } = req.query;
         const filter = {};
         if (published !== undefined)
             filter.published = published === 'true';
@@ -57,9 +64,10 @@ async function getAllProjects(req, res, next) {
         if (category)
             filter.category = category;
         if (search) {
+            const pattern = (0, response_1.escapeRegExp)(search);
             filter.$or = [
-                { title: { $regex: search, $options: 'i' } },
-                { shortDescription: { $regex: search, $options: 'i' } },
+                { title: { $regex: pattern, $options: 'i' } },
+                { shortDescription: { $regex: pattern, $options: 'i' } },
             ];
         }
         const [projects, total] = await Promise.all([
